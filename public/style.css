@@ -523,6 +523,62 @@ footer small {
     font-size: 0.95rem;
 }
 
+/* Recommendation Card Styles */
+.recommendation-card {
+    background: white;
+    border: 2px solid var(--primary);
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 30px;
+    box-shadow: var(--shadow-lg);
+}
+
+.recommendation-header {
+    margin-bottom: 15px;
+}
+
+.recommendation-header h3 {
+    font-size: 1.5rem;
+    color: var(--text-dark);
+    margin-bottom: 8px;
+}
+
+.gate-status {
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 8px 12px;
+    border-radius: 6px;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+.gate-failed {
+    background: rgba(239, 68, 68, 0.15);
+    color: #991b1b;
+    border-left: 4px solid #ef4444;
+    padding-left: 12px;
+}
+
+.gate-passed {
+    background: rgba(16, 185, 129, 0.15);
+    color: #065f46;
+    border-left: 4px solid #10b981;
+    padding-left: 12px;
+}
+
+.recommendation-body {
+    padding: 15px;
+    background: var(--bg-light);
+    border-radius: 8px;
+}
+
+.recommendation-text {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text-dark);
+    margin: 0;
+}
+
 @media (max-width: 768px) {
     header h1 {
         font-size: 1.8rem;

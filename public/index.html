@@ -9,19 +9,19 @@
 <body>
     <div class="container">
         <header>
-            <h1>📄 Resume-Job Fit Analyzer</h1>
-            <p>Using Tiger Data's Agentic Postgres with BM25 & Vector Search</p>
+            <h1>Candidate Screening Intelligence</h1>
+            <p>Intelligent Resume-Job Fit Analysis for Hiring Teams</p>
         </header>
 
         <main>
             <!-- Input Section -->
             <section class="input-section">
                 <div class="form-group">
-                    <h2>Step 1: Upload Resume</h2>
+                    <h2>Step 1: Add Candidate Resume</h2>
                     <div class="upload-area" id="uploadArea">
                         <input type="file" id="resumeFile" accept=".pdf,.txt,.doc,.docx" hidden>
                         <div class="upload-placeholder">
-                            <p>📁 Click or drag resume file here</p>
+                            <p>Click or drag candidate resume file here</p>
                             <small>PDF, TXT, or DOC files (max 10MB)</small>
                         </div>
                     </div>
@@ -29,26 +29,26 @@
                 </div>
 
                 <div class="form-group">
-                    <h2>Step 2: Job Description</h2>
-                    <input type="text" id="jobTitle" placeholder="Job Title (e.g., Senior Python Developer)" class="input-field">
-                    <textarea id="jobDescription" placeholder="Paste the job description here..." class="input-field" rows="8"></textarea>
+                    <h2>Step 2: Define Position Requirements</h2>
+                    <input type="text" id="jobTitle" placeholder="Position Title (e.g., Senior Python Developer)" class="input-field">
+                    <textarea id="jobDescription" placeholder="Paste the job description and requirements here..." class="input-field" rows="8"></textarea>
                     <input type="number" id="jobYears" placeholder="Required Years of Experience (optional)" class="input-field" min="0">
                     <div id="jobStatus" class="status-message"></div>
                 </div>
 
                 <button id="analyzeBtn" class="button button-primary" disabled>
-                    ⚡ Analyze Fit
+                    Analyze Candidate Fit
                 </button>
             </section>
 
             <!-- Results Section -->
             <section class="results-section" id="resultsSection" style="display: none;">
-                <h2>📊 Fit Score Results</h2>
+                <h2>Candidate Fit Analysis</h2>
 
                 <!-- NEW: Learning Widget -->
                 <div id="learning-widget" class="learning-indicator" style="display: none;">
                     <div class="spinner"></div>
-                    <p>🧠 Learning from your resume... <span id="discovery-count">0</span> new items found</p>
+                    <p>Learning from candidate profile... <span id="discovery-count">0</span> new items found</p>
                 </div>
 
                 <!-- Composite Score Card -->
@@ -57,17 +57,28 @@
                     <div class="score-label">Overall Fit Score</div>
                 </div>
 
+                <!-- Hiring Recommendation -->
+                <div class="recommendation-card" id="recommendationCard" style="display: none;">
+                    <div class="recommendation-header">
+                        <h3 id="fitRating">-</h3>
+                        <p id="skillGateCheck" class="gate-status"></p>
+                    </div>
+                    <div class="recommendation-body">
+                        <p id="recommendation" class="recommendation-text"></p>
+                    </div>
+                </div>
+
                 <!-- Score Breakdown -->
                 <div class="breakdown-section">
                     <h3>Score Breakdown</h3>
-                    <p class="breakdown-intro">Your fit score is calculated across five key dimensions:</p>
+                    <p class="breakdown-intro">The candidate's fit score is calculated across five key dimensions:</p>
 
                     <div class="score-item">
                         <div class="score-label">
                             <span class="label-main">Technical Skills Match</span>
                             <span class="label-weight">25%</span>
                         </div>
-                        <div class="score-tooltip">How well your skills align with the job requirements</div>
+                        <div class="score-tooltip">How well the candidate's skills align with the position requirements</div>
                         <div class="score-bar">
                             <div class="score-fill" id="keywordFill" style="width: 0%"></div>
                         </div>
@@ -82,7 +93,7 @@
                             <span class="label-main">Job Description Relevance</span>
                             <span class="label-weight">15%</span>
                         </div>
-                        <div class="score-tooltip">Semantic match between your background and job description</div>
+                        <div class="score-tooltip">Semantic match between candidate background and position requirements</div>
                         <div class="score-bar">
                             <div class="score-fill semantic" id="semanticFill" style="width: 0%"></div>
                         </div>
@@ -97,7 +108,7 @@
                             <span class="label-main">Years of Experience</span>
                             <span class="label-weight">10%</span>
                         </div>
-                        <div class="score-tooltip">Whether your experience meets or exceeds the requirement</div>
+                        <div class="score-tooltip">Whether the candidate's experience meets or exceeds the requirement</div>
                         <div class="score-bar">
                             <div class="score-fill structured" id="structuredFill" style="width: 0%"></div>
                         </div>
@@ -112,7 +123,7 @@
                             <span class="label-main">Education Level Match</span>
                             <span class="label-weight">30%</span>
                         </div>
-                        <div class="score-tooltip">How your degree level aligns with job requirements</div>
+                        <div class="score-tooltip">How the candidate's degree level aligns with position requirements</div>
                         <div class="score-bar">
                             <div class="score-fill education" id="educationFill" style="width: 0%"></div>
                         </div>
@@ -127,7 +138,7 @@
                             <span class="label-main">Relevant Certifications</span>
                             <span class="label-weight">20%</span>
                         </div>
-                        <div class="score-tooltip">Professional certifications that match job requirements</div>
+                        <div class="score-tooltip">Professional certifications that match position requirements</div>
                         <div class="score-bar">
                             <div class="score-fill certification" id="certificationFill" style="width: 0%"></div>
                         </div>
@@ -141,54 +152,32 @@
                 <!-- Resume & Job Info -->
                 <div class="info-section">
                     <div class="info-card">
-                        <h4>Resume Analysis</h4>
+                        <h4>Candidate Profile</h4>
                         <div id="resumeInfo"></div>
                     </div>
                     <div class="info-card">
-                        <h4>Job Requirements</h4>
+                        <h4>Position Requirements</h4>
                         <div id="jobInfo"></div>
                     </div>
                 </div>
 
                 <!-- Delete Actions -->
                 <div class="delete-actions-section" id="deleteActionsSection">
-                    <h3>🗑️ Data Management</h3>
-                    <p class="delete-info">Delete uploaded resume and job after use. This cannot be undone.</p>
+                    <h3>Data Management</h3>
+                    <p class="delete-info">Delete candidate resume and position requirements after analysis. This cannot be undone.</p>
                     <div class="delete-buttons">
                         <button id="deleteResumeBtn" class="button button-danger">
-                            🗑️ Delete Resume
+                            Delete Resume
                         </button>
                         <button id="deleteJobBtn" class="button button-danger">
-                            🗑️ Delete Job
+                            Delete Position
                         </button>
                         <button id="resetBtn" class="button button-secondary">
-                            🔄 Reset & Start Over
+                            Analyze Another Candidate
                         </button>
                     </div>
                 </div>
 
-                <!-- Technical Details -->
-                <div class="details-section">
-                    <h3>🔧 Technical Details</h3>
-                    <div class="details-grid">
-                        <div class="detail-item">
-                            <span class="label">Embedding Method:</span>
-                            <span id="embeddingMethod" class="value">-</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">BM25 Search:</span>
-                            <span class="value">✓ pg_textsearch</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">Vector DB:</span>
-                            <span class="value">✓ pgvector</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="label">Database:</span>
-                            <span class="value">✓ Tiger Cloud</span>
-                        </div>
-                    </div>
-                </div>
             </section>
 
             <!-- Error Message -->
@@ -196,8 +185,7 @@
         </main>
 
         <footer>
-            <p>🚀 Resume-Job Fit using Tiger Data's Agentic Postgres</p>
-            <p><small>Features: BM25 Full-Text Search | Vector Embeddings | Fast Forks | Fluid Storage</small></p>
+            <p>Candidate Screening Intelligence Platform</p>
         </footer>
     </div>
 

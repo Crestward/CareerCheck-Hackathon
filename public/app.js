@@ -80,17 +80,17 @@ async function handleResumeUpload() {
     // Validate file type
     const allowedTypes = ['application/pdf', 'text/plain'];
     if (!allowedTypes.includes(file.type)) {
-        showStatus(resumeStatus, 'error', '❌ Only PDF and TXT files are supported');
+        showStatus(resumeStatus, 'error', ' Only PDF and TXT files are supported');
         return;
     }
 
     // Validate file size (10MB max)
     if (file.size > 10 * 1024 * 1024) {
-        showStatus(resumeStatus, 'error', '❌ File size must be less than 10MB');
+        showStatus(resumeStatus, 'error', ' File size must be less than 10MB');
         return;
     }
 
-    showStatus(resumeStatus, 'loading', '📤 Uploading resume...');
+    showStatus(resumeStatus, 'loading', ' Uploading resume...');
 
     try {
         const formData = new FormData();
@@ -110,7 +110,7 @@ async function handleResumeUpload() {
         resumeData = data;
 
         showStatus(resumeStatus, 'success',
-            `✅ Resume uploaded! Candidate: ${data.candidate_name || 'Unknown'}`);
+            ` Resume uploaded! Candidate: ${data.candidate_name || 'Unknown'}`);
 
         // Update upload area display
         updateUploadAreaDisplay(file.name);
@@ -118,14 +118,14 @@ async function handleResumeUpload() {
 
     } catch (error) {
         console.error('Upload error:', error);
-        showStatus(resumeStatus, 'error', `❌ Upload failed: ${error.message}`);
+        showStatus(resumeStatus, 'error', ` Upload failed: ${error.message}`);
     }
 }
 
 function updateUploadAreaDisplay(fileName) {
     const placeholder = uploadArea.querySelector('.upload-placeholder');
     placeholder.innerHTML = `
-        <p>📄 <strong>${fileName}</strong></p>
+        <p> <strong>${fileName}</strong></p>
         <small>Click to change file</small>
     `;
 }
@@ -140,11 +140,11 @@ async function submitJobDescription() {
     const years = jobYears.value ? parseInt(jobYears.value) : 0;
 
     if (!title || !description) {
-        showStatus(jobStatus, 'error', '❌ Job title and description are required');
+        showStatus(jobStatus, 'error', ' Job title and description are required');
         return false;
     }
 
-    showStatus(jobStatus, 'loading', '📤 Creating job description...');
+    showStatus(jobStatus, 'loading', ' Creating job description...');
 
     try {
         const response = await fetch(`${API_BASE}/api/job-description`, {
@@ -165,12 +165,12 @@ async function submitJobDescription() {
         jobId = data.job_id;
         jobData = data;
 
-        showStatus(jobStatus, 'success', `✅ Job description created: ${data.title}`);
+        showStatus(jobStatus, 'success', ` Job description created: ${data.title}`);
         return true;
 
     } catch (error) {
         console.error('Job creation error:', error);
-        showStatus(jobStatus, 'error', `❌ Job creation failed: ${error.message}`);
+        showStatus(jobStatus, 'error', ` Job creation failed: ${error.message}`);
         return false;
     }
 }
@@ -206,30 +206,30 @@ async function analyzeResume() {
         const data = await response.json();
 
         // CRITICAL DIAGNOSTIC LOGGING
-        console.log('✅ API Response received');
+        console.log(' API Response received');
         console.log('   resume.skills type:', typeof data.resume.skills);
         console.log('   resume.skills is array:', Array.isArray(data.resume.skills));
         if (typeof data.resume.skills === 'string') {
-            console.error('❌ CRITICAL: resume.skills is a STRING, not an array!');
+            console.error(' CRITICAL: resume.skills is a STRING, not an array!');
             console.error('   First 100 chars:', data.resume.skills.substring(0, 100));
         } else if (Array.isArray(data.resume.skills)) {
-            console.log('✅ resume.skills is an array of', data.resume.skills.length, 'items');
+            console.log(' resume.skills is an array of', data.resume.skills.length, 'items');
             if (data.resume.skills.length > 0) {
                 console.log('   First item type:', typeof data.resume.skills[0]);
                 console.log('   First item:', data.resume.skills[0]);
             }
         }
-        console.log('✅ Full Scoring response:', data);
+        console.log(' Full Scoring response:', data);
 
         // NEW: Show learning widget if discoveries made
         if (data.learning && data.learning.learned) {
-            console.log('🧠 Learning detected, showing widget');
+            console.log(' Learning detected, showing widget');
             if (learningWidget) {
                 learningWidget.style.display = 'block';
                 const discoveryCountElement = document.getElementById('discovery-count');
                 if (discoveryCountElement) {
                     discoveryCountElement.textContent = data.learning.discoveryCount;
-                    console.log('📊 Discovery count updated:', data.learning.discoveryCount);
+                    console.log(' Discovery count updated:', data.learning.discoveryCount);
                 }
 
                 // Hide widget after 2 seconds
@@ -237,10 +237,10 @@ async function analyzeResume() {
                     learningWidget.style.display = 'none';
                 }, 2000);
             } else {
-                console.warn('⚠️ Learning widget element not found');
+                console.warn(' Learning widget element not found');
             }
         } else {
-            console.log('ℹ️ No learning data or learned flag is false:', data.learning);
+            console.log('ℹ No learning data or learned flag is false:', data.learning);
         }
 
         displayResults(data);
@@ -248,7 +248,7 @@ async function analyzeResume() {
         resultsSection.style.display = 'block';
 
     } catch (error) {
-        console.error('❌ Analysis error:', error);
+        console.error(' Analysis error:', error);
         showError(`Analysis failed: ${error.message}`);
         showSpinner(false);
     }
@@ -259,7 +259,7 @@ async function analyzeResume() {
 // ============================================================================
 
 function displayResults(data) {
-    const { scores, resume, job, embedding_method, resume_id, job_id } = data;
+    const { scores, resume, job, embedding_method, resume_id, job_id, fit_analysis } = data;
 
     if (!scores || !resume) {
         console.error('Invalid response data:', data);
@@ -270,11 +270,35 @@ function displayResults(data) {
     window.currentResumeId = resume_id;
     window.currentJobId = job_id;
 
-    console.log('📝 Stored IDs for deletion:', { resume_id, job_id });
+    console.log('Stored IDs for deletion:', { resume_id, job_id });
 
     // Display composite score
     const compositePercent = Math.round(scores.composite * 100);
     document.getElementById('compositeScore').textContent = `${compositePercent}%`;
+
+    // Display hiring recommendation and fit rating
+    if (fit_analysis && fit_analysis.overall_summary) {
+        const { fit_rating, recommendation, skill_gate_check } = fit_analysis.overall_summary;
+
+        const recommendationCard = document.getElementById('recommendationCard');
+        const fitRatingEl = document.getElementById('fitRating');
+        const recommendationEl = document.getElementById('recommendation');
+        const gateElement = document.getElementById('skillGateCheck');
+
+        if (recommendationCard && fitRatingEl && recommendationEl && gateElement) {
+            recommendationCard.style.display = 'block';
+            fitRatingEl.textContent = fit_rating;
+            recommendationEl.textContent = recommendation;
+            gateElement.textContent = skill_gate_check;
+
+            // Add critical warning styling if skill gate failed
+            if (skill_gate_check && skill_gate_check.includes('FAILED')) {
+                gateElement.classList.add('gate-failed');
+            } else {
+                gateElement.classList.add('gate-passed');
+            }
+        }
+    }
 
     // Update score bars and values
     // Map API field names to display field names
@@ -374,7 +398,7 @@ function displayResults(data) {
     const certsArray = toStringArray(resume.certifications, 'certifications');
     const eduArray = toStringArray(resume.education, 'education');
 
-    console.log('✅ Final arrays:');
+    console.log(' Final arrays:');
     console.log('  Skills:', skillsArray);
     console.log('  Certifications:', certsArray);
     console.log('  Education:', eduArray);
@@ -396,10 +420,6 @@ function displayResults(data) {
         <p><strong>Description:</strong> ${escapeHtml((job.description || '').substring(0, 200))}...</p>
     `;
 
-    // Display technical details
-    document.getElementById('embeddingMethod').textContent =
-        embedding_method === 'openai' ? 'OpenAI API' : 'Stub (Hash-based)';
-
     // Setup delete button event listeners
     setupDeleteButtons();
 }
@@ -415,14 +435,14 @@ function setupDeleteButtons() {
 
     // Delete Resume button
     deleteResumeBtn.addEventListener('click', () => {
-        if (confirm('⚠️ Are you sure you want to delete this resume?\n\nThis action cannot be undone.')) {
+        if (confirm(' Are you sure you want to delete this resume?\n\nThis action cannot be undone.')) {
             deleteResume();
         }
     });
 
     // Delete Job button
     deleteJobBtn.addEventListener('click', () => {
-        if (confirm('⚠️ Are you sure you want to delete this job?\n\nThis action cannot be undone.')) {
+        if (confirm(' Are you sure you want to delete this job?\n\nThis action cannot be undone.')) {
             deleteJob();
         }
     });
@@ -433,12 +453,12 @@ function setupDeleteButtons() {
 
 async function deleteResume() {
     if (!window.currentResumeId) {
-        alert('❌ Resume ID not found');
+        alert(' Resume ID not found');
         return;
     }
 
     const resumeId = window.currentResumeId;
-    showStatus(resumeStatus, 'loading', '🗑️ Deleting resume...');
+    showStatus(resumeStatus, 'loading', ' Deleting resume...');
 
     try {
         const response = await fetch(`${API_BASE}/api/resume/${resumeId}`, {
@@ -448,8 +468,8 @@ async function deleteResume() {
         const data = await response.json();
 
         if (response.ok && data.success) {
-            showStatus(resumeStatus, 'success', `✅ Resume deleted successfully!`);
-            console.log('✅ Resume deleted:', data.message);
+            showStatus(resumeStatus, 'success', ` Resume deleted successfully!`);
+            console.log(' Resume deleted:', data.message);
 
             // Clear resume data
             resumeData = null;
@@ -460,25 +480,25 @@ async function deleteResume() {
             // Reset form after a short delay
             setTimeout(() => {
                 resetForm();
-                alert('✅ Resume deleted! Ready to upload a new one.');
+                alert(' Resume deleted! Ready to upload a new one.');
             }, 1500);
         } else {
-            showStatus(resumeStatus, 'error', `❌ Delete failed: ${data.error || 'Unknown error'}`);
+            showStatus(resumeStatus, 'error', ` Delete failed: ${data.error || 'Unknown error'}`);
         }
     } catch (error) {
-        console.error('❌ Delete error:', error);
-        showStatus(resumeStatus, 'error', `❌ Error: ${error.message}`);
+        console.error(' Delete error:', error);
+        showStatus(resumeStatus, 'error', ` Error: ${error.message}`);
     }
 }
 
 async function deleteJob() {
     if (!window.currentJobId) {
-        alert('❌ Job ID not found');
+        alert(' Job ID not found');
         return;
     }
 
     const jobIdToDelete = window.currentJobId;
-    showStatus(jobStatus, 'loading', '🗑️ Deleting job...');
+    showStatus(jobStatus, 'loading', ' Deleting job...');
 
     try {
         const response = await fetch(`${API_BASE}/api/job/${jobIdToDelete}`, {
@@ -488,8 +508,8 @@ async function deleteJob() {
         const data = await response.json();
 
         if (response.ok && data.success) {
-            showStatus(jobStatus, 'success', `✅ Job deleted successfully!`);
-            console.log('✅ Job deleted:', data.message);
+            showStatus(jobStatus, 'success', ` Job deleted successfully!`);
+            console.log(' Job deleted:', data.message);
 
             // Clear job data
             jobData = null;
@@ -502,14 +522,14 @@ async function deleteJob() {
             // Reset form after a short delay
             setTimeout(() => {
                 resetForm();
-                alert('✅ Job deleted! Ready to enter a new job.');
+                alert(' Job deleted! Ready to enter a new job.');
             }, 1500);
         } else {
-            showStatus(jobStatus, 'error', `❌ Delete failed: ${data.error || 'Unknown error'}`);
+            showStatus(jobStatus, 'error', ` Delete failed: ${data.error || 'Unknown error'}`);
         }
     } catch (error) {
-        console.error('❌ Delete error:', error);
-        showStatus(jobStatus, 'error', `❌ Error: ${error.message}`);
+        console.error(' Delete error:', error);
+        showStatus(jobStatus, 'error', ` Error: ${error.message}`);
     }
 }
 
@@ -543,7 +563,7 @@ function resetForm() {
     uploadArea.innerHTML = `
         <input type="file" id="resumeFile" accept=".pdf,.txt,.doc,.docx" hidden>
         <div class="upload-placeholder">
-            <p>📁 Click or drag resume file here</p>
+            <p> Click or drag resume file here</p>
             <small>PDF, TXT, or DOC files (max 10MB)</small>
         </div>
     `;
@@ -558,7 +578,7 @@ function resetForm() {
     // Show input section
     document.querySelector('.input-section').style.display = 'block';
 
-    console.log('✅ Form reset and ready for new input');
+    console.log(' Form reset and ready for new input');
 }
 
 // Helper function to escape HTML and prevent JSON display
@@ -631,10 +651,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const response = await fetch(`${API_BASE}/api/health`);
         if (response.ok) {
             const health = await response.json();
-            console.log('✅ Server connected:', health);
+            console.log(' Server connected:', health);
         }
     } catch (error) {
-        console.warn('⚠️ Server connection failed:', error.message);
+        console.warn(' Server connection failed:', error.message);
     }
 
     validateInputs();

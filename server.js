@@ -331,6 +331,77 @@ async function extractTextFromDocument(buffer, mimetype, filename) {
 }
 
 /**
+ * Extract years of experience from employment date ranges
+ * Handles formats like: 2020-2024, Jan 2020 - Dec 2024, etc.
+ */
+function extractYearsFromEmploymentDates(text) {
+  if (!text || typeof text !== 'string') return 0;
+
+  // Patterns for date ranges
+  const dateRangePatterns = [
+    // YYYY-YYYY format (e.g., 2020-2024)
+    /(\d{4})\s*[-–]\s*(\d{4})/g,
+    // Month Year - Month Year (e.g., Jan 2020 - Dec 2024, January 2020 - Present)
+    /(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]?\s+(\d{4})\s*[-–]\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Present|Current)[a-z]?\s+(\d{4})?/gi,
+    // MM/YYYY - MM/YYYY format
+    /(\d{1,2})\/(\d{4})\s*[-–]\s*(\d{1,2})\/(\d{4})/g
+  ];
+
+  let totalYears = 0;
+  let dateRangesFound = [];
+
+  // Pattern 1: YYYY-YYYY
+  let match;
+  const pattern1 = /(\d{4})\s*[-–]\s*(\d{4})/g;
+  while ((match = pattern1.exec(text)) !== null) {
+    const startYear = parseInt(match[1], 10);
+    const endYear = parseInt(match[2], 10);
+    if (startYear < endYear && endYear <= new Date().getFullYear() + 1) {
+      const yearsInRole = endYear - startYear;
+      dateRangesFound.push(yearsInRole);
+      totalYears += yearsInRole;
+    }
+  }
+
+  // Pattern 2: Month Year - Month Year or Present
+  const pattern2 = /(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]?\s+(\d{4})\s*[-–]\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Present|Current)[a-z]?\s+(\d{4})?/gi;
+  while ((match = pattern2.exec(text)) !== null) {
+    const startYear = parseInt(match[1], 10);
+    const endYear = match[2] ? parseInt(match[2], 10) : new Date().getFullYear();
+    if (startYear <= endYear) {
+      const yearsInRole = endYear - startYear;
+      if (yearsInRole > 0 && yearsInRole < 80) { // Sanity check
+        dateRangesFound.push(yearsInRole);
+        totalYears += yearsInRole;
+      }
+    }
+  }
+
+  // Pattern 3: MM/YYYY - MM/YYYY
+  const pattern3 = /(\d{1,2})\/(\d{4})\s*[-–]\s*(\d{1,2})\/(\d{4})/g;
+  while ((match = pattern3.exec(text)) !== null) {
+    const startMonth = parseInt(match[1], 10);
+    const startYear = parseInt(match[2], 10);
+    const endMonth = parseInt(match[3], 10);
+    const endYear = parseInt(match[4], 10);
+
+    if (startYear < endYear || (startYear === endYear && startMonth < endMonth)) {
+      // Calculate exact years with decimal (e.g., 1.5 years)
+      const startDate = new Date(startYear, startMonth - 1, 1);
+      const endDate = new Date(endYear, endMonth - 1, 1);
+      const yearsInRole = (endDate - startDate) / (1000 * 60 * 60 * 24 * 365.25);
+      if (yearsInRole > 0 && yearsInRole < 80) {
+        dateRangesFound.push(yearsInRole);
+        totalYears += yearsInRole;
+      }
+    }
+  }
+
+  // Return rounded total
+  return Math.round(totalYears * 10) / 10;
+}
+
+/**
  * Parse resume with comprehensive skill extraction
  */
 function parseResume(text) {
@@ -506,14 +577,25 @@ function parseResume(text) {
     console.log(`      ${resume.skills.slice(0, 5).join(', ')}${resume.skills.length > 5 ? '...' : ''}`);
   }
 
-  // Extract years of experience - multiple patterns
-  let yearsMatch = text.match(/(\d+)\s+(?:years?|yrs?)\s+(?:of\s+)?(?:experience|exp)/i);
-  if (!yearsMatch) {
-    yearsMatch = text.match(/(?:experience|exp)\s*:?\s*(\d+)\s+(?:years?|yrs?)/i);
+  // Extract years of experience - try multiple methods
+  // Method 1: Calculate from employment history (date ranges)
+  resume.years_experience = extractYearsFromEmploymentDates(text);
+
+  // Method 2: Look for explicit mention like "5 years of experience"
+  if (resume.years_experience === 0) {
+    let yearsMatch = text.match(/(\d+)\s+(?:years?|yrs?)\s+(?:of\s+)?(?:experience|exp)/i);
+    if (!yearsMatch) {
+      yearsMatch = text.match(/(?:experience|exp)\s*:?\s*(\d+)\s+(?:years?|yrs?)/i);
+    }
+    if (yearsMatch) {
+      resume.years_experience = parseInt(yearsMatch[1], 10);
+    }
   }
-  if (yearsMatch) {
-    resume.years_experience = parseInt(yearsMatch[1], 10);
-    console.log(`   Experience: ${resume.years_experience} years`);
+
+  if (resume.years_experience > 0) {
+    console.log(`   Experience: ${resume.years_experience} years (calculated from dates)`);
+  } else {
+    console.log(`   Experience: Not found in resume`);
   }
 
   // Extract job titles
@@ -907,6 +989,19 @@ app.post('/api/job-description', jobLimiter, async (req, res) => {
     console.log(`  Title: ${title}`);
     console.log(`  Description length: ${description.length} characters`);
 
+    // Smart estimation of required years if not provided
+    let estimatedYears = required_years !== undefined ? parseInt(required_years, 10) : null;
+
+    if (estimatedYears === null || estimatedYears === undefined) {
+      estimatedYears = estimateRequiredExperienceFromJob({
+        title: title,
+        description: description
+      });
+      console.log(`  Estimated required years: ${estimatedYears} (smart estimation from job details)`);
+    } else {
+      console.log(`  Required years: ${estimatedYears} (provided explicitly)`);
+    }
+
     const embedding = await generateEmbedding(description);
     const jobId = generateUUID();
 
@@ -914,7 +1009,7 @@ app.post('/api/job-description', jobLimiter, async (req, res) => {
       job_id: jobId,
       title: title,
       description: description,
-      required_years: required_years || 0,
+      required_years: estimatedYears,
       embedding: embedding,
       created_at: new Date().toISOString()
     };
@@ -1293,10 +1388,12 @@ app.get('/api/score/:resume_id/:job_id', scoreLimiter, async (req, res) => {
         overall_summary: {
           composite_score: Math.round(compositeScore * 100) / 100,
           fit_rating: compositeScore >= 0.80 ? 'Excellent' : compositeScore >= 0.70 ? 'Good' : compositeScore >= 0.60 ? 'Moderate' : 'Below Average',
-          recommendation: compositeScore >= 0.80 ? 'Strong candidate - highly recommended for interview' :
+          recommendation: skillScore < 0.40 ? 'DO NOT INTERVIEW - Critical skill gap (less than 40% match)' :
+                        compositeScore >= 0.80 ? 'Strong candidate - highly recommended for interview' :
                         compositeScore >= 0.70 ? 'Good candidate - consider for interview' :
                         compositeScore >= 0.60 ? 'Moderate candidate - review carefully' :
-                        'Weak candidate - significant concerns'
+                        'Weak candidate - significant concerns',
+          skill_gate_check: skillScore < 0.40 ? 'FAILED: Technical skills below 40% threshold' : 'PASSED: Adequate technical skills'
         },
         skills_fit: {
           score: Math.round(skillScore * 100) / 100,
@@ -2140,6 +2237,156 @@ function getWeaknessesSummary(skillScore, experienceScore, educationScore, certi
   }
 
   return weaknesses;
+}
+
+/**
+ * Smart estimation of required experience from job details
+ * Uses job title, description keywords, and complexity indicators
+ */
+function estimateRequiredExperienceFromJob(job) {
+  if (!job) return 0;
+
+  let estimatedYears = 0;
+
+  // Method 1: Check for explicit year mentions
+  if (job.description || job.requirements) {
+    const fullText = `${job.description || ''} ${job.requirements || ''}`;
+    const patterns = [
+      /(\d+)\s*(?:\+)\s*years?/i,  // 5+ years
+      /(\d+)\s*-\s*(\d+)\s*years?/i, // 5-7 years
+      /(\d+)\s+years?/i  // 5 years
+    ];
+
+    for (const pattern of patterns) {
+      const match = fullText.match(pattern);
+      if (match) {
+        return parseInt(match[1], 10);
+      }
+    }
+  }
+
+  // Method 2: Estimate from job title seniority
+  const titleEstimate = estimateYearsFromJobTitle(job.title);
+  if (titleEstimate > 0) {
+    estimatedYears = titleEstimate;
+  }
+
+  // Method 3: Estimate from job complexity
+  const complexityEstimate = estimateYearsFromJobComplexity(job);
+  if (complexityEstimate > titleEstimate) {
+    estimatedYears = complexityEstimate;
+  }
+
+  return estimatedYears;
+}
+
+/**
+ * Estimate required years from job title seniority
+ */
+function estimateYearsFromJobTitle(title) {
+  if (!title || typeof title !== 'string') return 0;
+
+  const titleLower = title.toLowerCase();
+
+  // Executive/Director level: 15+ years
+  if (titleLower.match(/\b(cto|cfo|ceo|vp|vice\s+president|director|chief)\b/i)) {
+    return 15;
+  }
+
+  // Principal/Architect level: 12+ years
+  if (titleLower.match(/\b(principal|architect|staff)\b/i)) {
+    return 12;
+  }
+
+  // Senior/Lead level: 7+ years
+  if (titleLower.match(/\b(senior|lead|principal engineer|tech lead)\b/i)) {
+    return 7;
+  }
+
+  // Mid-level: 3-5 years
+  if (titleLower.match(/\b(mid\s*level|mid\s*-\s*level)\b/i)) {
+    return 4;
+  }
+
+  // Junior/Entry level: 0-2 years
+  if (titleLower.match(/\b(junior|entry\s*level|entry\s*-\s*level|intern|graduate)\b/i)) {
+    return 0;
+  }
+
+  // Default "Engineer", "Developer", "Specialist" without prefix: 3-5 years
+  if (titleLower.match(/\b(engineer|developer|specialist|analyst)\b/i)) {
+    return 3;
+  }
+
+  return 0;
+}
+
+/**
+ * Estimate required years from job description complexity
+ */
+function estimateYearsFromJobComplexity(job) {
+  const fullText = `${job.title || ''} ${job.description || ''} ${job.requirements || ''}`.toLowerCase();
+
+  const advancedTechKeywords = [
+    'machine learning', 'deep learning', 'ai', 'artificial intelligence',
+    'kubernetes', 'microservices', 'distributed systems', 'cloud architecture',
+    'devops', 'infrastructure', 'terraform', 'aws', 'gcp', 'azure',
+    'data pipeline', 'big data', 'spark', 'hadoop',
+    'system design', 'architecture', 'scalability'
+  ];
+
+  const seniorityKeywords = [
+    'mentor', 'lead', 'guide', 'architect', 'design',
+    'research', 'innovation', 'strategic', 'drive',
+    'oversight', 'accountability', 'stakeholder'
+  ];
+
+  const managementKeywords = [
+    'manage', 'lead team', 'team lead', 'supervision',
+    'delegate', 'performance review', 'hiring'
+  ];
+
+  let estimatedYears = 0;
+
+  // Count management indicators
+  let managementCount = managementKeywords.filter(kw => fullText.includes(kw)).length;
+  if (managementCount >= 2) {
+    estimatedYears = Math.max(estimatedYears, 8);
+  } else if (managementCount >= 1) {
+    estimatedYears = Math.max(estimatedYears, 5);
+  }
+
+  // Count seniority indicators
+  let seniorityCount = seniorityKeywords.filter(kw => fullText.includes(kw)).length;
+  if (seniorityCount >= 3) {
+    estimatedYears = Math.max(estimatedYears, 10);
+  } else if (seniorityCount >= 2) {
+    estimatedYears = Math.max(estimatedYears, 6);
+  } else if (seniorityCount >= 1) {
+    estimatedYears = Math.max(estimatedYears, 4);
+  }
+
+  // Count advanced tech
+  let advancedTechCount = advancedTechKeywords.filter(kw => fullText.includes(kw)).length;
+  if (advancedTechCount >= 4) {
+    estimatedYears = Math.max(estimatedYears, 8);
+  } else if (advancedTechCount >= 2) {
+    estimatedYears = Math.max(estimatedYears, 5);
+  } else if (advancedTechCount >= 1) {
+    estimatedYears = Math.max(estimatedYears, 3);
+  }
+
+  // Count required skills
+  const skillCount = (job.description || '').split(/[,;]/).length;
+  if (skillCount >= 15) {
+    estimatedYears = Math.max(estimatedYears, 6);
+  } else if (skillCount >= 10) {
+    estimatedYears = Math.max(estimatedYears, 4);
+  } else if (skillCount >= 5) {
+    estimatedYears = Math.max(estimatedYears, 2);
+  }
+
+  return estimatedYears;
 }
 
 // ============================================================================
