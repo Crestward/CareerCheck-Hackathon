@@ -138,7 +138,7 @@ const INITIAL_CERTIFICATIONS = [
 // ============================================================================
 
 async function seedSkills() {
-  console.log('\n📚 Seeding skills...');
+  console.log('\n Seeding skills...');
 
   for (const skill of INITIAL_SKILLS) {
     try {
@@ -163,18 +163,18 @@ async function seedSkills() {
       );
 
       if (result.rows.length > 0) {
-        console.log(`  ✅ ${skill.name} (ID: ${result.rows[0].id})`);
+        console.log(`   ${skill.name} (ID: ${result.rows[0].id})`);
       }
     } catch (error) {
-      console.warn(`  ❌ Error seeding ${skill.name}:`, error.message);
+      console.warn(`   Error seeding ${skill.name}:`, error.message);
     }
   }
 
-  console.log(`✅ Seeded ${INITIAL_SKILLS.length} skills`);
+  console.log(` Seeded ${INITIAL_SKILLS.length} skills`);
 }
 
 async function seedCertifications() {
-  console.log('\n📜 Seeding certifications...');
+  console.log('\n Seeding certifications...');
 
   for (const cert of INITIAL_CERTIFICATIONS) {
     try {
@@ -197,22 +197,22 @@ async function seedCertifications() {
       );
 
       if (result.rows.length > 0) {
-        console.log(`  ✅ ${cert.name} (ID: ${result.rows[0].id})`);
+        console.log(`   ${cert.name} (ID: ${result.rows[0].id})`);
       }
     } catch (error) {
-      console.warn(`  ❌ Error seeding ${cert.name}:`, error.message);
+      console.warn(`   Error seeding ${cert.name}:`, error.message);
     }
   }
 
-  console.log(`✅ Seeded ${INITIAL_CERTIFICATIONS.length} certifications`);
+  console.log(` Seeded ${INITIAL_CERTIFICATIONS.length} certifications`);
 }
 
 async function seedEducationLevels() {
-  console.log('\n🎓 Education levels already seeded via migration');
+  console.log('\n Education levels already seeded via migration');
 }
 
 async function createSkillRelationships() {
-  console.log('\n🔗 Creating skill relationships...');
+  console.log('\n Creating skill relationships...');
 
   const relationships = [
     { skill: 'React', related: 'JavaScript', type: 'prerequisite' },
@@ -252,14 +252,14 @@ async function createSkillRelationships() {
           [skillResult.rows[0].id, relatedResult.rows[0].id, rel.type, 0.8]
         );
 
-        console.log(`  ✅ ${rel.skill} → ${rel.related} (${rel.type})`);
+        console.log(`   ${rel.skill} → ${rel.related} (${rel.type})`);
       }
     } catch (error) {
-      console.warn(`  ❌ Error creating relationship:`, error.message);
+      console.warn(`   Error creating relationship:`, error.message);
     }
   }
 
-  console.log(`✅ Created skill relationships`);
+  console.log(` Created skill relationships`);
 }
 
 // ============================================================================
@@ -268,7 +268,7 @@ async function createSkillRelationships() {
 
 async function main() {
   try {
-    console.log('🌱 Starting database seed...');
+    console.log(' Starting database seed...');
 
     // Check if skills table exists
     const checkTable = await pool.query(
@@ -276,7 +276,7 @@ async function main() {
     );
 
     if (!checkTable.rows[0].exists) {
-      console.error('❌ Skills table does not exist. Run migrations first:');
+      console.error(' Skills table does not exist. Run migrations first:');
       console.error('   node scripts/run-migrations.js');
       process.exit(1);
     }
@@ -287,8 +287,8 @@ async function main() {
     await seedEducationLevels();
     await createSkillRelationships();
 
-    console.log('\n✅ Database seeding complete!');
-    console.log('\n📊 Summary:');
+    console.log('\n Database seeding complete!');
+    console.log('\n Summary:');
     console.log(`   - ${INITIAL_SKILLS.length} skills added`);
     console.log(`   - ${INITIAL_CERTIFICATIONS.length} certifications added`);
     console.log('   - Education levels configured');
@@ -296,7 +296,7 @@ async function main() {
 
     process.exit(0);
   } catch (error) {
-    console.error('❌ Fatal error:', error.message);
+    console.error(' Fatal error:', error.message);
     process.exit(1);
   } finally {
     await pool.end();

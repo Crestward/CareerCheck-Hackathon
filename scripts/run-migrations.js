@@ -28,49 +28,49 @@ const pool = new Pool({
 
 async function runMigrations() {
   try {
-    console.log('🔧 Running database migrations...\n');
+    console.log(' Running database migrations...\n');
 
     // Step 1: Enable pgvector extension
-    console.log('1️⃣  Enabling pgvector extension...');
+    console.log('1⃣  Enabling pgvector extension...');
     try {
       await pool.query('CREATE EXTENSION IF NOT EXISTS vector');
-      console.log('   ✅ pgvector enabled\n');
+      console.log('    pgvector enabled\n');
     } catch (error) {
       if (error.message.includes('already exists')) {
-        console.log('   ℹ️  pgvector already enabled\n');
+        console.log('   ℹ  pgvector already enabled\n');
       } else {
         throw error;
       }
     }
 
     // Step 2: Enable fuzzy search (for similarity)
-    console.log('2️⃣  Enabling fuzzy search extension...');
+    console.log('2⃣  Enabling fuzzy search extension...');
     try {
       await pool.query('CREATE EXTENSION IF NOT EXISTS pg_trgm');
-      console.log('   ✅ pg_trgm enabled\n');
+      console.log('    pg_trgm enabled\n');
     } catch (error) {
       if (error.message.includes('already exists')) {
-        console.log('   ℹ️  pg_trgm already enabled\n');
+        console.log('   ℹ  pg_trgm already enabled\n');
       } else {
         throw error;
       }
     }
 
     // Step 3: Enable full-text search
-    console.log('3️⃣  Enabling full-text search...');
+    console.log('3⃣  Enabling full-text search...');
     try {
       await pool.query('CREATE EXTENSION IF NOT EXISTS unaccent');
-      console.log('   ✅ unaccent enabled\n');
+      console.log('    unaccent enabled\n');
     } catch (error) {
       if (error.message.includes('already exists')) {
-        console.log('   ℹ️  unaccent already enabled\n');
+        console.log('   ℹ  unaccent already enabled\n');
       } else {
         throw error;
       }
     }
 
     // Step 4: Run main schema migration
-    console.log('4️⃣  Creating tables and indexes...');
+    console.log('4⃣  Creating tables and indexes...');
     const schemaPath = path.join(__dirname, '../migrations/001_create_skills_certifications_schema.sql');
 
     if (!fs.existsSync(schemaPath)) {
@@ -79,10 +79,10 @@ async function runMigrations() {
 
     const schemaSql = fs.readFileSync(schemaPath, 'utf-8');
     await pool.query(schemaSql);
-    console.log('   ✅ Tables and indexes created\n');
+    console.log('    Tables and indexes created\n');
 
     // Step 5: Verify tables exist
-    console.log('5️⃣  Verifying schema...');
+    console.log('5⃣  Verifying schema...');
     const tables = ['skills', 'certifications', 'education_levels', 'job_titles'];
 
     for (const table of tables) {
@@ -92,16 +92,16 @@ async function runMigrations() {
       );
 
       if (result.rows[0].exists) {
-        console.log(`   ✅ ${table} table exists`);
+        console.log(`    ${table} table exists`);
       } else {
         throw new Error(`Table ${table} was not created`);
       }
     }
 
-    console.log('\n✅ All migrations completed successfully!\n');
+    console.log('\n All migrations completed successfully!\n');
 
     // Step 6: Display schema info
-    console.log('📊 Schema Information:');
+    console.log(' Schema Information:');
     const tableInfo = await pool.query(`
       SELECT
         table_name,
@@ -119,14 +119,14 @@ async function runMigrations() {
       );
     }
 
-    console.log('\n📋 Next steps:');
+    console.log('\n Next steps:');
     console.log('   1. Seed initial data: node scripts/seed-database.js');
     console.log('   2. Update .env with database configuration');
     console.log('   3. Start server: npm start\n');
 
     process.exit(0);
   } catch (error) {
-    console.error('❌ Migration failed:', error.message);
+    console.error(' Migration failed:', error.message);
     console.error('\nTroubleshooting:');
     console.error('   - Ensure DATABASE_URL is set in .env');
     console.error('   - Ensure pgvector extension is available on Tiger Cloud');

@@ -205,7 +205,7 @@ function cleanupInMemoryStorage() {
   }
 
   if (resumeCount > 0 || jobCount > 0) {
-    console.log(`[${new Date().toISOString()}] 🧹 Memory cleanup: Removed ${resumeCount} old resumes, ${jobCount} old jobs`);
+    console.log(`[${new Date().toISOString()}]  Memory cleanup: Removed ${resumeCount} old resumes, ${jobCount} old jobs`);
   }
 }
 
@@ -306,26 +306,26 @@ app.use(express.static(path.join(__dirname, 'public')));
  * Extract text from various document formats
  */
 async function extractTextFromDocument(buffer, mimetype, filename) {
-  console.log(`[${new Date().toISOString()}] 📄 Extracting text from: ${filename} (${mimetype})`);
+  console.log(`[${new Date().toISOString()}]  Extracting text from: ${filename} (${mimetype})`);
 
   try {
     if (mimetype === 'application/pdf') {
       const pdfData = await pdfParse(buffer);
-      console.log(`[${new Date().toISOString()}] ✅ PDF extracted: ${pdfData.numpages} pages`);
+      console.log(`[${new Date().toISOString()}]  PDF extracted: ${pdfData.numpages} pages`);
       return pdfData.text;
     } else if (mimetype.includes('wordprocessingml') || mimetype === 'application/msword') {
       // DOCX/DOC file
       const result = await mammoth.extractRawText({ buffer });
-      console.log(`[${new Date().toISOString()}] ✅ DOCX extracted: ${result.value.length} characters`);
+      console.log(`[${new Date().toISOString()}]  DOCX extracted: ${result.value.length} characters`);
       return result.value;
     } else {
       // Plain text
       const text = buffer.toString('utf-8');
-      console.log(`[${new Date().toISOString()}] ✅ Text file read: ${text.length} characters`);
+      console.log(`[${new Date().toISOString()}]  Text file read: ${text.length} characters`);
       return text;
     }
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] ❌ Text extraction error:`, error.message);
+    console.error(`[${new Date().toISOString()}]  Text extraction error:`, error.message);
     throw error;
   }
 }
@@ -334,7 +334,7 @@ async function extractTextFromDocument(buffer, mimetype, filename) {
  * Parse resume with comprehensive skill extraction
  */
 function parseResume(text) {
-  console.log(`[${new Date().toISOString()}] 🔍 Parsing resume text...`);
+  console.log(`[${new Date().toISOString()}]  Parsing resume text...`);
 
   const resume = {
     candidate_name: '',
@@ -381,7 +381,7 @@ function parseResume(text) {
     const extractedName = nameMatch[1].trim().split(/\s{2,}|\n/)[0].trim();
     if (extractedName && extractedName.length > 2 && extractedName.length < 60) {
       resume.candidate_name = extractedName;
-      console.log(`  📝 Name: ${resume.candidate_name}`);
+      console.log(`   Name: ${resume.candidate_name}`);
     }
   }
 
@@ -389,14 +389,14 @@ function parseResume(text) {
   const emailMatch = text.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/);
   if (emailMatch) {
     resume.email = emailMatch[1];
-    console.log(`  📧 Email: ${resume.email}`);
+    console.log(`   Email: ${resume.email}`);
   }
 
   // Extract phone
   const phoneMatch = text.match(/(\+?\d{1,3}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9})/);
   if (phoneMatch) {
     resume.phone = phoneMatch[1];
-    console.log(`  📱 Phone: ${resume.phone}`);
+    console.log(`   Phone: ${resume.phone}`);
   }
 
   // COMPREHENSIVE SKILL LIST - 200+ technologies
@@ -501,7 +501,7 @@ function parseResume(text) {
     }
   });
 
-  console.log(`  🛠️  Skills found: ${resume.skills.length}`);
+  console.log(`    Skills found: ${resume.skills.length}`);
   if (resume.skills.length > 0) {
     console.log(`      ${resume.skills.slice(0, 5).join(', ')}${resume.skills.length > 5 ? '...' : ''}`);
   }
@@ -513,7 +513,7 @@ function parseResume(text) {
   }
   if (yearsMatch) {
     resume.years_experience = parseInt(yearsMatch[1], 10);
-    console.log(`  📅 Experience: ${resume.years_experience} years`);
+    console.log(`   Experience: ${resume.years_experience} years`);
   }
 
   // Extract job titles
@@ -591,9 +591,9 @@ function parseResume(text) {
     }
   });
 
-  console.log(`  🎓 Education: ${resume.education.length > 0 ? resume.education.join(', ') : 'Not found'}`);
-  console.log(`  📜 Certifications: ${resume.certifications.length > 0 ? resume.certifications.slice(0, 3).join(', ') : 'Not found'}`);
-  console.log(`[${new Date().toISOString()}] ✅ Resume parsed successfully`);
+  console.log(`   Education: ${resume.education.length > 0 ? resume.education.join(', ') : 'Not found'}`);
+  console.log(`   Certifications: ${resume.certifications.length > 0 ? resume.certifications.slice(0, 3).join(', ') : 'Not found'}`);
+  console.log(`[${new Date().toISOString()}]  Resume parsed successfully`);
 
   return resume;
 }
@@ -665,7 +665,7 @@ async function saveResumeToDB(resumeData) {
   if (!pool || !usingDatabase) {
     // Use in-memory storage
     resumes.set(resumeData.resume_id, resumeData);
-    console.log(`[${new Date().toISOString()}] 💾 Resume saved to memory: ${resumeData.resume_id}`);
+    console.log(`[${new Date().toISOString()}]  Resume saved to memory: ${resumeData.resume_id}`);
     return;
   }
 
@@ -686,9 +686,9 @@ async function saveResumeToDB(resumeData) {
       JSON.stringify(resumeData.embedding)
     ]);
 
-    console.log(`[${new Date().toISOString()}] 💾 Resume saved to Tiger Database: ${result.rows[0].resume_id}`);
+    console.log(`[${new Date().toISOString()}]  Resume saved to Tiger Database: ${result.rows[0].resume_id}`);
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] ❌ Database insert error:`, error.message);
+    console.error(`[${new Date().toISOString()}]  Database insert error:`, error.message);
     throw error;
   } finally {
     client.release();
@@ -708,7 +708,7 @@ app.post('/api/upload-resume', uploadLimiter, upload.single('resume'), async (re
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    console.log(`\n[${new Date().toISOString()}] 📥 RESUME UPLOAD REQUEST`);
+    console.log(`\n[${new Date().toISOString()}]  RESUME UPLOAD REQUEST`);
     console.log(`  File: ${req.file.originalname}`);
     console.log(`  Size: ${(req.file.size / 1024).toFixed(2)} KB`);
     console.log(`  Type: ${req.file.mimetype}`);
@@ -728,10 +728,10 @@ app.post('/api/upload-resume', uploadLimiter, upload.single('resume'), async (re
     let nlpCertifications = [];
 
     // PRIMARY: Use new skill matcher (regex-based, no BERT tokens)
-    console.log(`[${new Date().toISOString()}] 🔍 Extracting skills using regex-based matcher...`);
+    console.log(`[${new Date().toISOString()}]  Extracting skills using regex-based matcher...`);
     try {
       nlpSkills = extractAllSkills(resumeText);
-      console.log(`[${new Date().toISOString()}] ✅ Regex extraction: ${nlpSkills.length} skills found`);
+      console.log(`[${new Date().toISOString()}]  Regex extraction: ${nlpSkills.length} skills found`);
 
       // Optional: Enrich with database data
       if (pool && usingDatabase && nlpSkills.length > 0) {
@@ -741,23 +741,23 @@ app.post('/api/upload-resume', uploadLimiter, upload.single('resume'), async (re
           try {
             // Skills are already formatted, just return them
             // Database enrichment happens in improved-scoring.js if needed
-            console.log(`[${new Date().toISOString()}] ℹ️  Skills ready for database enrichment during scoring`);
+            console.log(`[${new Date().toISOString()}] ℹ  Skills ready for database enrichment during scoring`);
           } finally {
             client.release();
           }
         } catch (enrichError) {
-          console.warn(`[${new Date().toISOString()}] ⚠️  Database enrichment skipped:`, enrichError.message);
+          console.warn(`[${new Date().toISOString()}]   Database enrichment skipped:`, enrichError.message);
         }
       }
     } catch (error) {
-      console.warn(`[${new Date().toISOString()}] ⚠️  Skill extraction error:`, error.message);
+      console.warn(`[${new Date().toISOString()}]   Skill extraction error:`, error.message);
       nlpSkills = [];
     }
 
     // Extract certifications (pattern-based, from parseResume output)
     nlpCertifications = parsedData.certifications.map(c => ({ name: c, confidence: 0.7 }));
     if (nlpCertifications.length > 0) {
-      console.log(`[${new Date().toISOString()}] 🎓 Certifications: ${nlpCertifications.length} found`);
+      console.log(`[${new Date().toISOString()}]  Certifications: ${nlpCertifications.length} found`);
     }
 
     // Generate embedding
@@ -784,10 +784,10 @@ app.post('/api/upload-resume', uploadLimiter, upload.single('resume'), async (re
       await saveResumeToDB(resumeData);
     } else {
       resumes.set(resumeId, resumeData);
-      console.log(`[${new Date().toISOString()}] 💾 Resume saved to in-memory storage: ${resumeId}`);
+      console.log(`[${new Date().toISOString()}]  Resume saved to in-memory storage: ${resumeId}`);
     }
 
-    console.log(`[${new Date().toISOString()}] ✅ Resume processed successfully\n`);
+    console.log(`[${new Date().toISOString()}]  Resume processed successfully\n`);
 
     res.json({
       success: true,
@@ -802,7 +802,7 @@ app.post('/api/upload-resume', uploadLimiter, upload.single('resume'), async (re
       message: 'Resume uploaded and parsed successfully'
     });
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] ❌ Upload error:`, error.message);
+    console.error(`[${new Date().toISOString()}]  Upload error:`, error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -903,7 +903,7 @@ app.post('/api/job-description', jobLimiter, async (req, res) => {
       }
     }
 
-    console.log(`[${new Date().toISOString()}] 📋 JOB DESCRIPTION RECEIVED`);
+    console.log(`[${new Date().toISOString()}]  JOB DESCRIPTION RECEIVED`);
     console.log(`  Title: ${title}`);
     console.log(`  Description length: ${description.length} characters`);
 
@@ -937,16 +937,16 @@ app.post('/api/job-description', jobLimiter, async (req, res) => {
           JSON.stringify(embedding)
         ]);
 
-        console.log(`[${new Date().toISOString()}] 💾 Job saved to Tiger Database: ${result.rows[0].job_id}`);
+        console.log(`[${new Date().toISOString()}]  Job saved to Tiger Database: ${result.rows[0].job_id}`);
       } finally {
         client.release();
       }
     } else {
       jobs.set(jobId, jobData);
-      console.log(`[${new Date().toISOString()}] 💾 Job saved to in-memory storage: ${jobId}`);
+      console.log(`[${new Date().toISOString()}]  Job saved to in-memory storage: ${jobId}`);
     }
 
-    console.log(`[${new Date().toISOString()}] ✅ Job description processed\n`);
+    console.log(`[${new Date().toISOString()}]  Job description processed\n`);
 
     res.json({
       success: true,
@@ -956,7 +956,7 @@ app.post('/api/job-description', jobLimiter, async (req, res) => {
       message: 'Job description created successfully'
     });
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] ❌ Job error:`, error.message);
+    console.error(`[${new Date().toISOString()}]  Job error:`, error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -968,7 +968,7 @@ app.get('/api/score/:resume_id/:job_id', scoreLimiter, async (req, res) => {
   try {
     const { resume_id, job_id } = req.params;
 
-    console.log(`[${new Date().toISOString()}] 📊 SCORING REQUEST`);
+    console.log(`[${new Date().toISOString()}]  SCORING REQUEST`);
     console.log(`  Resume ID: ${resume_id}`);
     console.log(`  Job ID: ${job_id}`);
 
@@ -991,9 +991,9 @@ app.get('/api/score/:resume_id/:job_id', scoreLimiter, async (req, res) => {
         if (resume.skills && typeof resume.skills === 'string') {
           try {
             resume.skills = JSON.parse(resume.skills);
-            console.log(`[${new Date().toISOString()}] ✅ Parsed skills from JSON string`);
+            console.log(`[${new Date().toISOString()}]  Parsed skills from JSON string`);
           } catch (parseError) {
-            console.warn(`[${new Date().toISOString()}] ⚠️  Could not parse skills JSON:`, parseError.message);
+            console.warn(`[${new Date().toISOString()}]   Could not parse skills JSON:`, parseError.message);
             resume.skills = [];
           }
         }
@@ -1037,10 +1037,10 @@ app.get('/api/score/:resume_id/:job_id', scoreLimiter, async (req, res) => {
           pool
         );
         if (learningResult.learningCount > 0) {
-          console.log(`[${new Date().toISOString()}] 🧠 Learned ${learningResult.learningCount} new items: ${learningResult.newItems.join(', ')}`);
+          console.log(`[${new Date().toISOString()}]  Learned ${learningResult.learningCount} new items: ${learningResult.newItems.join(', ')}`);
         }
       } catch (error) {
-        console.warn(`[${new Date().toISOString()}] ⚠️  Learning phase error:`, error.message);
+        console.warn(`[${new Date().toISOString()}]   Learning phase error:`, error.message);
       }
     }
 
@@ -1051,10 +1051,10 @@ app.get('/api/score/:resume_id/:job_id', scoreLimiter, async (req, res) => {
       try {
         knowledgeItems = await getKnowledgeBaseItems(pool, 'skill');
         if (knowledgeItems.length > 0) {
-          console.log(`[${new Date().toISOString()}] 📚 Retrieved ${knowledgeItems.length} learned items from knowledge base`);
+          console.log(`[${new Date().toISOString()}]  Retrieved ${knowledgeItems.length} learned items from knowledge base`);
         }
       } catch (error) {
-        console.warn(`[${new Date().toISOString()}] ⚠️  Knowledge base retrieval error:`, error.message);
+        console.warn(`[${new Date().toISOString()}]   Knowledge base retrieval error:`, error.message);
       }
     }
 
@@ -1066,7 +1066,7 @@ app.get('/api/score/:resume_id/:job_id', scoreLimiter, async (req, res) => {
     ];
 
     // Compute improved 5-factor scores using database-driven approach
-    console.log(`[${new Date().toISOString()}] 📈 Computing 5-factor improved scores...`);
+    console.log(`[${new Date().toISOString()}]  Computing 5-factor improved scores...`);
 
     // Convert skill objects to names (if they're objects from NLP)
     // Use allSkills which includes both extracted and learned items
@@ -1244,7 +1244,7 @@ app.get('/api/score/:resume_id/:job_id', scoreLimiter, async (req, res) => {
     console.log(`  Experience Score: ${(experienceScore * 100).toFixed(1)}% (${(usedWeights.structured * 100).toFixed(0)}% weight)`);
     console.log(`  Education Score: ${(educationScore * 100).toFixed(1)}% (${(usedWeights.education * 100).toFixed(0)}% weight)`);
     console.log(`  Certification Score: ${(certificationScore * 100).toFixed(1)}% (${(usedWeights.certification * 100).toFixed(0)}% weight)`);
-    console.log(`  ➜ COMPOSITE (5-FACTOR): ${(compositeScore * 100).toFixed(1)}%`);
+    console.log(`   COMPOSITE (5-FACTOR): ${(compositeScore * 100).toFixed(1)}%`);
     console.log(`  Job Type: ${job.title} → ${Object.entries(usedWeights).map(([k, v]) => `${k}: ${(v*100).toFixed(0)}%`).join(', ')}\n`);
 
     res.json({
@@ -1358,7 +1358,7 @@ app.get('/api/score/:resume_id/:job_id', scoreLimiter, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] ❌ Score error:`, error.message);
+    console.error(`[${new Date().toISOString()}]  Score error:`, error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1370,7 +1370,7 @@ app.get('/api/score/:resume_id/:job_id', scoreLimiter, async (req, res) => {
 app.get('/api/score-multi-agent/:resume_id/:job_id', scoreLimiter, async (req, res) => {
   const { resume_id, job_id } = req.params;
 
-  console.log(`\n[${new Date().toISOString()}] 🤖 MULTI-AGENT SCORING REQUEST`);
+  console.log(`\n[${new Date().toISOString()}]  MULTI-AGENT SCORING REQUEST`);
   console.log(`  Resume ID: ${resume_id}`);
   console.log(`  Job ID: ${job_id}`);
 
@@ -1425,7 +1425,7 @@ app.get('/api/score-multi-agent/:resume_id/:job_id', scoreLimiter, async (req, r
     // Run multi-agent analysis
     const results = await agentCoordinator.scoreResume(resume_id, job_id);
 
-    console.log(`  ✅ Multi-agent scoring complete`);
+    console.log(`   Multi-agent scoring complete`);
     console.log(`  Composite Score: ${results.composite_score}%`);
     console.log(`  Agents Completed: ${results.agents_completed}/${results.agents_completed + (5 - results.agents_completed)}`);
     console.log(`  Processing Time: ${results.processing_time_ms}ms\n`);
@@ -1515,7 +1515,7 @@ app.get('/api/score-multi-agent/:resume_id/:job_id', scoreLimiter, async (req, r
     });
 
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] ❌ Multi-agent score error:`, error.message);
+    console.error(`[${new Date().toISOString()}]  Multi-agent score error:`, error.message);
     console.error(error.stack);
     res.status(500).json({
       error: error.message,
@@ -1531,7 +1531,7 @@ app.get('/api/score-multi-agent/:resume_id/:job_id', scoreLimiter, async (req, r
 app.delete('/api/resume/:resume_id', async (req, res) => {
   const { resume_id } = req.params;
 
-  console.log(`[${new Date().toISOString()}] 🗑️  DELETE RESUME REQUEST: ${resume_id}`);
+  console.log(`[${new Date().toISOString()}]   DELETE RESUME REQUEST: ${resume_id}`);
 
   try {
     let deleted = false;
@@ -1552,13 +1552,13 @@ app.delete('/api/resume/:resume_id', async (req, res) => {
 
           if (result.rows.length > 0) {
             deleted = true;
-            console.log(`[${new Date().toISOString()}] ✅ Resume deleted from database: ${resume_id}`);
+            console.log(`[${new Date().toISOString()}]  Resume deleted from database: ${resume_id}`);
           }
         } finally {
           client.release();
         }
       } catch (dbError) {
-        console.warn(`[${new Date().toISOString()}] ⚠️  Database delete error:`, dbError.message);
+        console.warn(`[${new Date().toISOString()}]   Database delete error:`, dbError.message);
         // Continue to try in-memory deletion
       }
     }
@@ -1567,7 +1567,7 @@ app.delete('/api/resume/:resume_id', async (req, res) => {
     if (resumes.has(resume_id)) {
       resumes.delete(resume_id);
       deleted = true;
-      console.log(`[${new Date().toISOString()}] ✅ Resume deleted from memory: ${resume_id}`);
+      console.log(`[${new Date().toISOString()}]  Resume deleted from memory: ${resume_id}`);
     }
 
     if (deleted) {
@@ -1585,7 +1585,7 @@ app.delete('/api/resume/:resume_id', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] ❌ Delete resume error:`, error.message);
+    console.error(`[${new Date().toISOString()}]  Delete resume error:`, error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1597,7 +1597,7 @@ app.delete('/api/resume/:resume_id', async (req, res) => {
 app.delete('/api/job/:job_id', async (req, res) => {
   const { job_id } = req.params;
 
-  console.log(`[${new Date().toISOString()}] 🗑️  DELETE JOB REQUEST: ${job_id}`);
+  console.log(`[${new Date().toISOString()}]   DELETE JOB REQUEST: ${job_id}`);
 
   try {
     let deleted = false;
@@ -1618,13 +1618,13 @@ app.delete('/api/job/:job_id', async (req, res) => {
 
           if (result.rows.length > 0) {
             deleted = true;
-            console.log(`[${new Date().toISOString()}] ✅ Job deleted from database: ${job_id}`);
+            console.log(`[${new Date().toISOString()}]  Job deleted from database: ${job_id}`);
           }
         } finally {
           client.release();
         }
       } catch (dbError) {
-        console.warn(`[${new Date().toISOString()}] ⚠️  Database delete error:`, dbError.message);
+        console.warn(`[${new Date().toISOString()}]   Database delete error:`, dbError.message);
         // Continue to try in-memory deletion
       }
     }
@@ -1633,7 +1633,7 @@ app.delete('/api/job/:job_id', async (req, res) => {
     if (jobs.has(job_id)) {
       jobs.delete(job_id);
       deleted = true;
-      console.log(`[${new Date().toISOString()}] ✅ Job deleted from memory: ${job_id}`);
+      console.log(`[${new Date().toISOString()}]  Job deleted from memory: ${job_id}`);
     }
 
     if (deleted) {
@@ -1651,7 +1651,7 @@ app.delete('/api/job/:job_id', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] ❌ Delete job error:`, error.message);
+    console.error(`[${new Date().toISOString()}]  Delete job error:`, error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -2074,7 +2074,7 @@ function computeCompositeScore(keywordScore, semanticScore, structuredScore, edu
   const totalWeight = weights.keyword + weights.semantic + weights.structured +
                      weights.education + weights.certification;
   if (Math.abs(totalWeight - 1.0) > 0.001) {
-    console.warn(`⚠️  Weight normalization issue: total = ${totalWeight}, should be 1.0`);
+    console.warn(`  Weight normalization issue: total = ${totalWeight}, should be 1.0`);
   }
 
   // Calculate composite score as weighted average
@@ -2361,7 +2361,7 @@ app.get('/api/admin/health/system', authenticateAdmin, async (req, res) => {
 // ============================================================================
 
 app.use((err, req, res, next) => {
-  console.error(`[${new Date().toISOString()}] ❌ Error:`, err.message);
+  console.error(`[${new Date().toISOString()}]  Error:`, err.message);
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
@@ -2379,7 +2379,7 @@ async function displayForkResultsOnStartup() {
   }
 
   try {
-    console.log(`\n[${new Date().toISOString()}] 📊 FORK RESULTS & AGENT FINDINGS`);
+    console.log(`\n[${new Date().toISOString()}]  FORK RESULTS & AGENT FINDINGS`);
     console.log('='.repeat(70));
 
     // Query recent forks (last 24 hours)
@@ -2400,9 +2400,9 @@ async function displayForkResultsOnStartup() {
     `);
 
     if (forksResult.rows.length === 0) {
-      console.log('📭 No recent fork activity (no forks created in last 24 hours)');
+      console.log(' No recent fork activity (no forks created in last 24 hours)');
     } else {
-      console.log(`\n🔄 Recent Forks (${forksResult.rows.length} found):`);
+      console.log(`\n Recent Forks (${forksResult.rows.length} found):`);
 
       // Group by status
       const byStatus = {};
@@ -2412,7 +2412,7 @@ async function displayForkResultsOnStartup() {
       });
 
       for (const [status, forks] of Object.entries(byStatus)) {
-        const statusIcon = status === 'completed' ? '✅' : status === 'failed' ? '❌' : '⏳';
+        const statusIcon = status === 'completed' ? '' : status === 'failed' ? '' : '⏳';
         console.log(`\n  ${statusIcon} ${status.toUpperCase()} (${forks.length}):`);
 
         forks.forEach(fork => {
@@ -2425,7 +2425,7 @@ async function displayForkResultsOnStartup() {
     }
 
     // Query agent results
-    console.log(`\n🤖 AGENT FINDINGS:`);
+    console.log(`\n AGENT FINDINGS:`);
     console.log('  Available Agents:');
 
     const agentTypes = ['skill', 'experience', 'education', 'certification', 'semantic'];
@@ -2471,7 +2471,7 @@ async function displayForkResultsOnStartup() {
         totalResults += resultCount;
 
         if (resultCount > 0) {
-          console.log(`\n  ✅ ${agentType.toUpperCase()} Agent - ${resultCount} recent results:`);
+          console.log(`\n   ${agentType.toUpperCase()} Agent - ${resultCount} recent results:`);
 
           resultsResult.rows.slice(0, 3).forEach(result => {
             console.log(`     • Score: ${result.score ? result.score.toFixed(1) : 'N/A'}% | Time: ${result.processing_time_ms}ms | ${new Date(result.created_at).toLocaleTimeString()}`);
@@ -2493,18 +2493,18 @@ async function displayForkResultsOnStartup() {
           // Table doesn't exist - expected on first run
           console.log(`    ⏳ ${agentType.padEnd(12)} - Ready (table not yet created)`);
         } else {
-          console.log(`    ⚠️  ${agentType.padEnd(12)} - Error: ${err.message.substring(0, 40)}`);
+          console.log(`      ${agentType.padEnd(12)} - Error: ${err.message.substring(0, 40)}`);
         }
       }
     }
 
     console.log(`\n  Total Results Across All Agents: ${totalResults}`);
     if (totalResults === 0) {
-      console.log('  💡 Run /api/score-multi-agent/:resume_id/:job_id to generate results');
+      console.log('   Run /api/score-multi-agent/:resume_id/:job_id to generate results');
     }
     console.log('\n' + '='.repeat(70));
   } catch (error) {
-    console.warn(`[${new Date().toISOString()}] ⚠️  Could not display fork results:`, error.message);
+    console.warn(`[${new Date().toISOString()}]   Could not display fork results:`, error.message);
   }
 }
 
@@ -2515,32 +2515,32 @@ async function displayForkResultsOnStartup() {
 app.listen(PORT, async () => {
   try {
     // Initialize NLP pipelines on startup
-    console.log(`\n[${new Date().toISOString()}] 🤖 Initializing NLP pipelines...`);
+    console.log(`\n[${new Date().toISOString()}]  Initializing NLP pipelines...`);
     await initializeNLPPipelines();
-    console.log(`[${new Date().toISOString()}] ✅ NLP pipelines ready\n`);
+    console.log(`[${new Date().toISOString()}]  NLP pipelines ready\n`);
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] ❌ NLP initialization failed:`, error.message);
-    console.log(`[${new Date().toISOString()}] ⚠️  Continuing without NLP support\n`);
+    console.error(`[${new Date().toISOString()}]  NLP initialization failed:`, error.message);
+    console.log(`[${new Date().toISOString()}]   Continuing without NLP support\n`);
   }
 
   // Display fork results and agent findings
   await displayForkResultsOnStartup();
 
-  console.log(`\n[${new Date().toISOString()}] 🚀 SERVER STARTED`);
+  console.log(`\n[${new Date().toISOString()}]  SERVER STARTED`);
   console.log(`  URL: http://localhost:${PORT}`);
   console.log(`  Health: http://localhost:${PORT}/api/health`);
-  console.log(`  Storage: ${usingDatabase && pool ? '🗄️  Tiger Database' : '💾 In-Memory'}`);
-  console.log(`  Multi-Agent: ${multiAgentEnabled ? '🤖 Ready + 🚀 Phase 3 Features' : '⚠️  Disabled (DB connection required)'}`);
-  console.log('\n📚 API Endpoints:');
+  console.log(`  Storage: ${usingDatabase && pool ? '  Tiger Database' : ' In-Memory'}`);
+  console.log(`  Multi-Agent: ${multiAgentEnabled ? ' Ready +  Phase 3 Features' : '  Disabled (DB connection required)'}`);
+  console.log('\n API Endpoints:');
   console.log('  POST   /api/upload-resume - Upload resume file');
   console.log('  POST   /api/job-description - Create job description');
   console.log('  GET    /api/score/:resume_id/:job_id - Get fit score');
   console.log('  GET    /api/resume/:resume_id - Get resume details');
-  console.log('  DELETE /api/resume/:resume_id - Delete resume 🗑️');
-  console.log('  DELETE /api/job/:job_id - Delete job 🗑️');
+  console.log('  DELETE /api/resume/:resume_id - Delete resume ');
+  console.log('  DELETE /api/job/:job_id - Delete job ');
   if (multiAgentEnabled) {
-    console.log('  GET    /api/score-multi-agent/:resume_id/:job_id (⭐ Multi-Agent Scoring)');
-    console.log('\n🚀 Phase 3 Admin Endpoints (require X-API-Key header):');
+    console.log('  GET    /api/score-multi-agent/:resume_id/:job_id ( Multi-Agent Scoring)');
+    console.log('\n Phase 3 Admin Endpoints (require X-API-Key header):');
     console.log('  GET    /api/admin/analytics/agent-performance');
     console.log('  POST   /api/admin/batch/submit');
     console.log('  GET    /api/admin/batch/:batchId');
@@ -2550,6 +2550,6 @@ app.listen(PORT, async () => {
     console.log('  GET    /api/admin/health/system');
   }
   console.log('  GET    /api/health - System health');
-  console.log('\n✅ Ready to accept requests');
+  console.log('\n Ready to accept requests');
   console.log('='.repeat(70) + '\n');
 });

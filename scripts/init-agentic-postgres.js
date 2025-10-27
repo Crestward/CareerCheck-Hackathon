@@ -30,90 +30,90 @@ const migrationsDir = path.join(__dirname, '../migrations');
  */
 async function initialize() {
   console.log('\n' + '='.repeat(70));
-  console.log('🚀 AGENTIC POSTGRES INITIALIZATION');
+  console.log(' AGENTIC POSTGRES INITIALIZATION');
   console.log('='.repeat(70) + '\n');
 
   let mainPool = null;
 
   try {
     // Step 1: Verify database connection
-    console.log('📋 Step 1: Verifying database connection...');
+    console.log(' Step 1: Verifying database connection...');
     mainPool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     });
 
     const result = await mainPool.query('SELECT NOW() as time, version()');
-    console.log(`   ✅ Connected to PostgreSQL: ${result.rows[0].time}`);
+    console.log(`    Connected to PostgreSQL: ${result.rows[0].time}`);
     console.log(`   Version: ${result.rows[0].version.split(',')[0]}`);
 
     // Step 2: Check for required extensions
-    console.log('\n📋 Step 2: Checking required extensions...');
+    console.log('\n Step 2: Checking required extensions...');
     await checkExtensions(mainPool);
 
     // Step 3: Run migrations
-    console.log('\n📋 Step 3: Running database migrations...');
+    console.log('\n Step 3: Running database migrations...');
     await runMigrations(mainPool);
 
     // Step 4: Initialize Fork Manager
-    console.log('\n📋 Step 4: Initializing Fork Manager...');
+    console.log('\n Step 4: Initializing Fork Manager...');
     const forkManager = new ForkManager(process.env.DATABASE_URL);
     const forkHealth = await forkManager.healthCheck();
-    console.log(`   ✅ Fork Manager: ${forkHealth.status}`);
+    console.log(`    Fork Manager: ${forkHealth.status}`);
 
     // Step 5: Initialize MCP Client
-    console.log('\n📋 Step 5: Initializing MCP Client...');
+    console.log('\n Step 5: Initializing MCP Client...');
     const mcpClient = new MCPClient({
       apiKey: process.env.TIGER_MCP_KEY,
       workspace: 'resume-analyzer'
     });
     const mcpHealth = mcpClient.getHealthStatus();
-    console.log(`   ✅ MCP Client: ${mcpHealth.status}`);
+    console.log(`    MCP Client: ${mcpHealth.status}`);
     console.log(`   Workspace: ${mcpHealth.workspace}`);
 
     // Step 6: Schedule cleanup tasks
-    console.log('\n📋 Step 6: Scheduling maintenance tasks...');
+    console.log('\n Step 6: Scheduling maintenance tasks...');
     forkManager.scheduleCleanup(30); // Cleanup every 30 minutes
-    console.log('   ✅ Fork cleanup scheduled every 30 minutes');
+    console.log('    Fork cleanup scheduled every 30 minutes');
 
     // Step 7: Verify schema
-    console.log('\n📋 Step 7: Verifying schema...');
+    console.log('\n Step 7: Verifying schema...');
     await verifySchema(mainPool);
 
     // Step 8: Summary
     console.log('\n' + '='.repeat(70));
-    console.log('✅ INITIALIZATION COMPLETE');
+    console.log(' INITIALIZATION COMPLETE');
     console.log('='.repeat(70));
 
     console.log(`
-📊 System Status:
+ System Status:
   • Database: Connected
   • Fork Manager: Ready
   • MCP Client: Ready
   • Migrations: Applied
   • Cleanup: Scheduled
 
-🚀 Next Steps:
+ Next Steps:
   1. Create specialized agent classes (skill, experience, education, etc.)
   2. Implement agent analysis logic
   3. Set up agent coordinator
   4. Test with sample resumes
 
-📚 Files Created:
+ Files Created:
   • migrations/004_agent_coordination.sql
   • lib/fork-manager.js
   • lib/mcp-client.js
   • lib/agents/base-agent.js
   • scripts/init-agentic-postgres.js (this file)
 
-🔗 Documentation:
+ Documentation:
   • AGENTIC_POSTGRES_ENHANCEMENTS.md - Architecture guide
   • See start.md for project context
 
 `);
 
     // Step 9: Save configuration
-    console.log('📋 Step 9: Saving configuration...');
+    console.log(' Step 9: Saving configuration...');
     await saveConfiguration({
       database: process.env.DATABASE_URL.split('@')[1] || 'local',
       forkManager: forkHealth,
@@ -124,7 +124,7 @@ async function initialize() {
     process.exit(0);
 
   } catch (error) {
-    console.error('\n❌ INITIALIZATION FAILED');
+    console.error('\n INITIALIZATION FAILED');
     console.error(`Error: ${error.message}`);
     console.error(error.stack);
     process.exit(1);
@@ -150,18 +150,18 @@ async function checkExtensions(pool) {
       );
 
       if (result.rows.length > 0) {
-        console.log(`   ✅ ${ext}: Installed`);
+        console.log(`    ${ext}: Installed`);
       } else {
         console.log(`   ⏳ ${ext}: Installing...`);
         try {
           await pool.query(`CREATE EXTENSION IF NOT EXISTS ${ext}`);
-          console.log(`   ✅ ${ext}: Installed`);
+          console.log(`    ${ext}: Installed`);
         } catch (e) {
-          console.warn(`   ⚠️  ${ext}: Could not install (may require superuser): ${e.message}`);
+          console.warn(`     ${ext}: Could not install (may require superuser): ${e.message}`);
         }
       }
     } catch (error) {
-      console.warn(`   ⚠️  ${ext}: Check failed - ${error.message}`);
+      console.warn(`     ${ext}: Check failed - ${error.message}`);
     }
   }
 }
@@ -215,16 +215,16 @@ async function runMigrations(pool) {
           [file]
         );
 
-        console.log(`   ✅ ${file}`);
+        console.log(`    ${file}`);
       }
     }
 
     if (applied.size === files.length) {
-      console.log('   ✅ All migrations applied');
+      console.log('    All migrations applied');
     }
 
   } catch (error) {
-    console.error(`   ❌ Migration error: ${error.message}`);
+    console.error(`    Migration error: ${error.message}`);
     throw error;
   }
 }
@@ -269,9 +269,9 @@ async function verifySchema(pool) {
     );
 
     if (result.rows[0].exists) {
-      console.log(`   ✅ ${table}`);
+      console.log(`    ${table}`);
     } else {
-      console.log(`   ❌ ${table}`);
+      console.log(`    ${table}`);
       missingTables.push(table);
     }
   }
@@ -292,9 +292,9 @@ async function verifySchema(pool) {
     );
 
     if (result.rows[0].exists) {
-      console.log(`   ✅ ${table}`);
+      console.log(`    ${table}`);
     } else {
-      console.log(`   ℹ️  ${table} (not yet created - Phase 3 optional)`);
+      console.log(`   ℹ  ${table} (not yet created - Phase 3 optional)`);
     }
   }
 
@@ -311,7 +311,7 @@ async function verifySchema(pool) {
     );
 
     if (result.rows[0].exists) {
-      console.log(`   ✅ View: ${view}`);
+      console.log(`    View: ${view}`);
     }
   }
 
@@ -336,7 +336,7 @@ async function verifySchema(pool) {
       );
 
       if (result.rows[0].exists) {
-        console.log(`   ✅ ${view}`);
+        console.log(`    ${view}`);
       }
     }
   }
@@ -349,7 +349,7 @@ async function saveConfiguration(config) {
   const configFile = path.join(__dirname, '../.agentic-postgres-init.json');
 
   fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
-  console.log(`   ✅ Configuration saved to .agentic-postgres-init.json`);
+  console.log(`    Configuration saved to .agentic-postgres-init.json`);
 }
 
 // Run initialization

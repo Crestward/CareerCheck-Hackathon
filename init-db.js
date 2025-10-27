@@ -10,7 +10,7 @@ const { Pool } = pkg;
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-  console.error('❌ DATABASE_URL not set in .env');
+  console.error(' DATABASE_URL not set in .env');
   process.exit(1);
 }
 
@@ -24,9 +24,9 @@ async function initializeDatabase() {
 
   try {
     console.log('\n' + '='.repeat(70));
-    console.log('🗄️  Initializing Tiger Database Schema');
+    console.log('  Initializing Tiger Database Schema');
     console.log('='.repeat(70));
-    console.log(`[${new Date().toISOString()}] 🔄 Creating tables...\n`);
+    console.log(`[${new Date().toISOString()}]  Creating tables...\n`);
 
     // Create resumes table
     await client.query(`
@@ -43,7 +43,7 @@ async function initializeDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('✅ Table "resumes" created');
+    console.log(' Table "resumes" created');
 
     // Create jobs table
     await client.query(`
@@ -57,7 +57,7 @@ async function initializeDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('✅ Table "jobs" created');
+    console.log(' Table "jobs" created');
 
     // Create fit_scores table
     await client.query(`
@@ -72,7 +72,7 @@ async function initializeDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    console.log('✅ Table "fit_scores" created');
+    console.log(' Table "fit_scores" created');
 
     // Check table status
     const tables = await client.query(`
@@ -81,17 +81,17 @@ async function initializeDatabase() {
       ORDER BY table_name;
     `);
 
-    console.log(`\n📊 Database Tables (${tables.rowCount}):`);
+    console.log(`\n Database Tables (${tables.rowCount}):`);
     tables.rows.forEach((row, i) => {
       console.log(`  ${i + 1}. ${row.table_name}`);
     });
 
-    console.log(`\n[${new Date().toISOString()}] ✅ Database initialization complete`);
+    console.log(`\n[${new Date().toISOString()}]  Database initialization complete`);
     console.log('='.repeat(70));
-    console.log('\n🚀 Ready to use Tiger Database!\n');
+    console.log('\n Ready to use Tiger Database!\n');
 
   } catch (error) {
-    console.error(`\n❌ Error during initialization:`, error.message);
+    console.error(`\n Error during initialization:`, error.message);
     if (error.detail) {
       console.error(`   Detail: ${error.detail}`);
     }
