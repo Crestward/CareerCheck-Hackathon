@@ -759,12 +759,15 @@ async function saveResumeToDB(resumeData) {
       RETURNING resume_id
     `;
 
+    // Round years_experience to integer for database storage
+    const yearsExperience = Math.round(resumeData.years_experience || 0);
+
     const result = await client.query(query, [
       resumeData.resume_id,
       resumeData.candidate_name,
       resumeData.raw_text,
       resumeData.skills,
-      resumeData.years_experience,
+      yearsExperience,
       JSON.stringify(resumeData.embedding)
     ]);
 
@@ -1153,24 +1156,23 @@ app.get('/api/score/:resume_id/:job_id', scoreLimiter, async (req, res) => {
       }
     }
 
-    // ===== MERGE SKILLS: Extract + Knowledge Base =====
-    // Combine extracted skills with learned items
-    const allSkills = [
-      ...resume.skills,
-      ...knowledgeItems
-    ];
+    // ===== SKILL SCORING =====
+    // IMPORTANT: Use ONLY skills from the current resume, NOT knowledge base!
+    // Knowledge base is for learning trends, not for skill matching on individual resumes.
+    // Using knowledge base skills would unfairly boost unrelated candidates.
+
+    const allSkills = resume.skills;  // Only this resume's actual skills
 
     // Compute improved 5-factor scores using database-driven approach
     console.log(`[${new Date().toISOString()}]  Computing 5-factor improved scores...`);
 
     // Convert skill objects to names (if they're objects from NLP)
-    // Use allSkills which includes both extracted and learned items
     const skillNames = Array.isArray(allSkills)
       ? allSkills.map(skill => typeof skill === 'string' ? skill : skill.name || skill)
       : [];
 
     // Skill match score (using database if available)
-    // Use allSkills which includes learned items
+    // Use ONLY this resume's extracted skills, not knowledge base
     let skillScore = 0;
     try {
       const skillScoreResult = pool && usingDatabase
@@ -1196,7 +1198,7 @@ app.get('/api/score/:resume_id/:job_id', scoreLimiter, async (req, res) => {
       skillScore = Math.max(0, Math.min(1, skillScore));
     }
 
-    // Semantic score (with validation)
+    // Semantic score (with validation) - Domain-aware relevance
     let semanticScore = 0;
     try {
       const resumeEmb = JSON.parse(typeof resume.embedding === 'string' ? resume.embedding : JSON.stringify(resume.embedding || []));
@@ -1207,7 +1209,15 @@ app.get('/api/score/:resume_id/:job_id', scoreLimiter, async (req, res) => {
         console.warn('[SCORE] Invalid embeddings, using fallback');
         semanticScore = 0.5;
       } else {
-        semanticScore = computeSemanticScore(resumeEmb, jobEmb);
+        // Pass context for domain-aware relevance calculation
+        semanticScore = computeSemanticScore(resumeEmb, jobEmb, {
+          resumeSkills: resume.skills,
+          jobDescription: job.description,
+          jobTitle: job.title,
+          resumeText: resume.raw_text,
+          resumeEducation: resume.education,
+          skillScore: skillScore  // Use actual skill match as reference for validation
+        });
       }
 
       // Validate the score is a valid number between 0 and 1
@@ -1887,12 +1897,18 @@ function computeKeywordScore(resumeSkills, jobDescription) {
   return Math.min(1.0, Math.max(0, averageScore));
 }
 
-function computeSemanticScore(resumeEmbedding, jobEmbedding) {
+/**
+ * Domain-aware semantic scoring
+ * Combines embedding similarity with domain relevance checks
+ * to prevent false positives from generic term overlap
+ */
+function computeSemanticScore(resumeEmbedding, jobEmbedding, context = {}) {
   if (!resumeEmbedding || !jobEmbedding) return 0.5;
   if (!Array.isArray(resumeEmbedding) || !Array.isArray(jobEmbedding)) return 0.5;
   if (resumeEmbedding.length === 0 || jobEmbedding.length === 0) return 0.5;
   if (resumeEmbedding.length !== jobEmbedding.length) return 0.5;
 
+  // Calculate raw cosine similarity
   let dotProduct = 0;
   let normA = 0;
   let normB = 0;
@@ -1901,7 +1917,6 @@ function computeSemanticScore(resumeEmbedding, jobEmbedding) {
     const a = resumeEmbedding[i];
     const b = jobEmbedding[i];
 
-    // Skip NaN or undefined values
     if (!Number.isFinite(a) || !Number.isFinite(b)) {
       continue;
     }
@@ -1911,22 +1926,159 @@ function computeSemanticScore(resumeEmbedding, jobEmbedding) {
     normB += b * b;
   }
 
-  // Validate results
   if (!Number.isFinite(dotProduct) || !Number.isFinite(normA) || !Number.isFinite(normB)) {
-    return 0.5; // Neutral score for invalid embeddings
+    return 0.5;
   }
 
   const denominator = Math.sqrt(normA) * Math.sqrt(normB);
   if (denominator === 0) {
-    return 0.5; // Both vectors are zero
+    return 0.5;
   }
 
-  // Cosine similarity is -1 to 1, normalize to 0 to 1
   const cosineScore = dotProduct / denominator;
-  const normalizedScore = (cosineScore + 1) / 2;
+  const rawEmbeddingScore = (cosineScore + 1) / 2;  // Normalize to 0-1
 
-  // Ensure result is in valid range
-  return Math.max(0, Math.min(1, normalizedScore));
+  // If no context provided, return raw embedding score
+  if (!context || Object.keys(context).length === 0) {
+    return Math.max(0, Math.min(1, rawEmbeddingScore));
+  }
+
+  // Calculate domain relevance score
+  let domainRelevance = 0.5;  // Default neutral
+  try {
+    domainRelevance = calculateDomainRelevance(context);
+  } catch (e) {
+    // Fallback to neutral if domain relevance calculation fails
+    domainRelevance = 0.5;
+  }
+
+  // Detect if job is tech-oriented
+  const isJobTechOriented = detectTechJob(context.jobTitle, context.jobDescription);
+
+  // Apply skill-semantic alignment validation
+  let skillSemanticAlignment = 0.5;  // Neutral default
+  const skillScore = context.skillScore || 0;
+
+  if (isJobTechOriented && skillScore < 0.4) {
+    // Tech job but candidate has very low skill match
+    // High embedding similarity + low actual skill match = generic overlap
+    // Penalize this heavily
+    skillSemanticAlignment = 0.2;  // Strong penalty for misleading semantic overlap
+  } else if (skillScore > 0.7) {
+    // Good skill match - embedding score is more reliable
+    skillSemanticAlignment = Math.min(1, skillScore);
+  } else {
+    // Medium skill match - use embedding as-is
+    skillSemanticAlignment = rawEmbeddingScore;
+  }
+
+  // Composite semantic score with domain awareness:
+  // - 40% raw embedding similarity (broad semantic relatedness)
+  // - 30% domain relevance (field-specific fit)
+  // - 30% skill-semantic alignment (actual skills matching job needs)
+  const compositeScore = (
+    rawEmbeddingScore * 0.4 +
+    domainRelevance * 0.3 +
+    skillSemanticAlignment * 0.3
+  );
+
+  return Math.max(0, Math.min(1, compositeScore));
+}
+
+/**
+ * Detect if a job is tech-oriented based on title and description
+ */
+function detectTechJob(jobTitle, jobDescription) {
+  const techKeywords = [
+    'engineer', 'developer', 'programmer', 'architect', 'devops', 'sre',
+    'cloud', 'data', 'ai', 'ml', 'machine learning', 'database', 'sql',
+    'python', 'javascript', 'java', 'c++', '.net', 'react', 'node',
+    'kubernetes', 'docker', 'aws', 'azure', 'gcp', 'infrastructure',
+    'software', 'tech', 'it ', 'cybersecurity', 'security', 'network',
+    'analyst', 'admin', 'devp', 'backend', 'frontend', 'fullstack'
+  ];
+
+  let titleLower = (jobTitle || '').toLowerCase();
+  let descLower = (jobDescription || '').toLowerCase();
+
+  const titleHasTech = techKeywords.some(keyword => titleLower.includes(keyword));
+  const descHasTech = techKeywords.filter(kw => kw.length > 4).some(keyword => {
+    // For longer keywords, require multiple mentions in description
+    const matches = (descLower.match(new RegExp(keyword, 'g')) || []).length;
+    return matches >= 2;
+  });
+
+  return titleHasTech || descHasTech;
+}
+
+/**
+ * Calculate domain relevance score based on field alignment
+ */
+function calculateDomainRelevance(context) {
+  let relevanceScore = 0.5;  // Neutral default
+
+  const jobDesc = (context.jobDescription || '').toLowerCase();
+  const jobTitle = (context.jobTitle || '').toLowerCase();
+  const resumeText = (context.resumeText || '').toLowerCase();
+  const resumeSkills = context.resumeSkills || [];
+  const resumeEducation = context.resumeEducation || [];
+
+  // Tech job indicators
+  const isTechJob = detectTechJob(context.jobTitle, context.jobDescription);
+
+  if (!isTechJob) {
+    // Non-tech job - use raw semantic relevance
+    return 0.6;  // Generic jobs have broader relevance
+  }
+
+  // Tech job - check if resume shows tech background
+  let techIndicators = 0;
+  const maxIndicators = 5;
+
+  // 1. Check if resume mentions relevant tech keywords
+  const techKeywords = [
+    'software', 'development', 'engineering', 'system', 'data', 'cloud',
+    'database', 'api', 'code', 'program', 'javascript', 'python', 'java',
+    'deployment', 'infrastructure', 'kubernetes', 'docker', 'agile'
+  ];
+
+  const techKeywordMatches = techKeywords.filter(kw => resumeText.includes(kw)).length;
+  if (techKeywordMatches >= 3) techIndicators += 2;
+  else if (techKeywordMatches >= 1) techIndicators += 1;
+
+  // 2. Check if extracted skills match job description keywords
+  if (resumeSkills && resumeSkills.length > 0) {
+    const skillMatches = resumeSkills.filter(skill => {
+      const skillStr = typeof skill === 'string' ? skill : (skill.name || '');
+      return jobDesc.includes(skillStr.toLowerCase());
+    }).length;
+    if (skillMatches >= 2) techIndicators += 2;
+    else if (skillMatches >= 1) techIndicators += 1;
+  }
+
+  // 3. Check job title matches resume job history
+  const titleKeywords = jobTitle.split(/\s+/).filter(w => w.length > 4);
+  const titleMatches = titleKeywords.filter(keyword => resumeText.includes(keyword)).length;
+  if (titleMatches >= 2) techIndicators += 1;
+
+  // 4. Check education field (if available)
+  let hasRelevantEducation = false;
+  const techFields = ['computer science', 'engineering', 'information technology', 'data science', 'software'];
+  if (resumeEducation) {
+    const eduStr = typeof resumeEducation === 'string' ? resumeEducation : JSON.stringify(resumeEducation);
+    hasRelevantEducation = techFields.some(field => eduStr.toLowerCase().includes(field));
+  }
+  if (hasRelevantEducation) techIndicators += 1;
+
+  // 5. Significant experience in tech (if available)
+  if (context.skillScore && context.skillScore > 0.5) {
+    techIndicators += 1;
+  }
+
+  // Calculate relevance: higher indicators = higher relevance
+  relevanceScore = Math.min(1, 0.3 + (techIndicators / maxIndicators) * 0.7);
+
+  return relevanceScore;
 }
 
 function computeStructuredScore(resumeYears, jobYears) {
