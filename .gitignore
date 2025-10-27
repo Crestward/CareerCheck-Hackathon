@@ -1,0 +1,58 @@
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# Credentials and Secrets
+details.md
+credentials.json
+*.key
+*.pem
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# IDE and Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build and Distribution
+dist/
+build/
+*.tgz
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Upload directory (if storing uploaded files locally)
+uploads/
+
+# Database backups
+*.sql.bak
+*.sql.dump
+
+# Tiger CLI configuration
+.config/tiger/
+
+# Testing
+.nyc_output/
+coverage/
+
+# OS specific
+Thumbs.db
+.vscode-browse.json

@@ -1,0 +1,24 @@
+John Smith
+john.smith@email.com
+(555) 123-4567
+
+PROFESSIONAL SUMMARY
+Senior Software Engineer with 8 years of experience in full-stack development.
+
+SKILLS
+- Python
+- JavaScript
+- React
+- Node.js
+- PostgreSQL
+- Docker
+- AWS
+- Machine Learning
+- TensorFlow
+- Git
+
+EXPERIENCE
+8 years at Tech Company as Senior Developer
+
+EDUCATION
+BS Computer Science

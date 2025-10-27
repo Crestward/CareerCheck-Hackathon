@@ -1,0 +1,19 @@
+{
+  "database": "d0b12mjtvb.ru1drvc3u2.tsdb.cloud.timescale.com:31085/tsdb?sslmode=require",
+  "forkManager": {
+    "status": "healthy",
+    "activeForks": 0,
+    "completedForks": 0,
+    "failedForks": 0,
+    "totalForks": 0,
+    "mainDatabaseUrl": "postgres://tsdbadmin:***@d0b12mjtvb.ru1drvc3u2.tsdb.cloud.timescale.com:31085/tsdb?sslmode=require"
+  },
+  "mcp": {
+    "status": "fallback",
+    "workspace": "resume-analyzer",
+    "activeChannels": 0,
+    "registeredAgents": 0,
+    "totalMessages": 0
+  },
+  "timestamp": "2025-10-27T11:21:31.843Z"
+}
