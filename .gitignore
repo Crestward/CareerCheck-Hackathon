@@ -56,3 +56,7 @@ coverage/
 # OS specific
 Thumbs.db
 .vscode-browse.json
+
+# folders
+/claude
+/.claude
